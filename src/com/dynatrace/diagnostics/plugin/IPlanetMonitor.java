@@ -7,22 +7,14 @@
 
 package com.dynatrace.diagnostics.plugin;
 
-import com.dynatrace.diagnostics.pdk.*;
-import com.sun.org.apache.xml.internal.security.utils.Base64;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthScope;
-import org.apache.commons.httpclient.auth.CredentialsProvider;
-import org.apache.commons.httpclient.methods.GetMethod;
-
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.ConnectException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLEncoder;
-import java.net.UnknownHostException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -30,43 +22,27 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathFactory;
 
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.*;
-
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+import com.dynatrace.diagnostics.pdk.Monitor;
+import com.dynatrace.diagnostics.pdk.MonitorEnvironment;
+import com.dynatrace.diagnostics.pdk.MonitorMeasure;
+import com.dynatrace.diagnostics.pdk.Plugin;
+import com.dynatrace.diagnostics.pdk.Status;
 
 public class IPlanetMonitor implements Monitor {
 
 	private static final Logger log = Logger.getLogger(IPlanetMonitor.class.getName());
 	
 	//initialize config variables
-	private String username;
-	private String password;
-	private String authString;
-	private String authStringEnc;
 	private String minuendMeasure;
 	private String subtrahendMeasure;
-	
-	private URL btDashboardUrl;
-	private URL url;
-	private URLConnection connection;
-	
+
 	/**
 	 * The RangeGroup that will calculate the different second range groups 
 	 * Set range section < 1 seconds && >1s & <2s && >2s & <3s & >3s & <4s  & >4s & <5s & >5s & <10s && >10s & <15s & > 15s		
@@ -74,7 +50,7 @@ public class IPlanetMonitor implements Monitor {
 	private RangeGroup rangeGroup;
 	
 	/**
-	 * 
+	 * The restAPI is the variable allowing access to the data displayed in dashboards 
 	 */
 	private ServerRestAPI restAPI;
 	
@@ -142,29 +118,19 @@ public class IPlanetMonitor implements Monitor {
 		//Reset all ranges to 0
 		rangeGroup.resetGroup();
 		
-		
-		StringBuilder messageBuffer = new StringBuilder("URL: ");
-		messageBuffer.append(url).append("\r\n");
-		
 		try {
 			
 			TrustSSL.trustAllCerts();	
 			
 			try {
-				logInfo("Here");
-				
 				doc = restAPI.getDashboard(env.getConfigString("dashboardName"));
 				NodeList listDataRows = doc.getElementsByTagName("chartdashlet");
 				
 				Element purePathLessWaitTime = (Element) listDataRows.item(0);
-				Element countPurePaths = (Element)listDataRows.item(1);
 				
 				NodeList tmp = purePathLessWaitTime.getElementsByTagName("measure");
-				logInfo("Length is: " + tmp.getLength());
-				logInfo("Length of child is : " + tmp.item(0).getChildNodes().getLength());
 				NodeList clientWaitTime = null;
 				NodeList purepathTime = null;
-				NodeList countPurepath;
 				List<Double> purePathMinusWaitTimeDivCount = new ArrayList<Double>();
 				
 				for (int i = 0; i < tmp.getLength(); i++) {
@@ -184,8 +150,6 @@ public class IPlanetMonitor implements Monitor {
 					Double sumPurePathTime = Double.parseDouble(purepathTime.item(j).getAttributes().getNamedItem("sum").getNodeValue());
 					Double countPurePath = Double.parseDouble(purepathTime.item(j).getAttributes().getNamedItem("count").getNodeValue());
 					
-					logWarn("CLIENT TIME STAMP = " + clientWaitTimeStamp);
-					logWarn("PUREPATH TIME STAMP " + purePathTimeStamp);
 					double result = 0;
 					if (purePathTimeStamp.longValue() < clientWaitTimeStamp.longValue()) {
 						result = sumPurePathTime.doubleValue() / countPurePath.doubleValue();
@@ -203,10 +167,7 @@ public class IPlanetMonitor implements Monitor {
 					rangeGroup.calculateGroup(result);
 				}
 				
-				logInfo("+++++++++++++HERE+++++++++++");
-				
-				
-				
+				//Set value of netDiff = purepath time - client wait time / purepath count
 				Collection<MonitorMeasure> monitorMeasures = env.getMonitorMeasures("NettoGroup", "netDiff");
 				for (MonitorMeasure measure : monitorMeasures) {
 					measure.setValue(purePathMinusWaitTimeDivCount.get(purePathMinusWaitTimeDivCount.size() - 1));
@@ -228,30 +189,31 @@ public class IPlanetMonitor implements Monitor {
 				for(MonitorMeasure measure : betweenTwoAndThreeCollection) {
 					measure.setValue(rangeGroup.getBetweenTwoThreeSecond());
 				}
-				//Set value
+				//Set value of >3s & <4s
 				Collection<MonitorMeasure> betweenThreeAndFourCollection = env.getMonitorMeasures("RangeGroup", "Between_Three_And_Four_Seconds");
 				for(MonitorMeasure measure : betweenThreeAndFourCollection) {
 					measure.setValue(rangeGroup.getBetweenThreeFourSecond());
 				}
+				//Set value of >4s & <5s
 				Collection<MonitorMeasure> betweenFourAndFiveSecondsCollection = env.getMonitorMeasures("RangeGroup", "Between_Four_And_Five_Seconds");
 				for(MonitorMeasure measure : betweenFourAndFiveSecondsCollection) {
 					measure.setValue(rangeGroup.getBetweenFourFiveSecond());
 				}
+				//Set value of >5s & <10s
 				Collection<MonitorMeasure> betweenFiveAndTenSecondsCollection = env.getMonitorMeasures("RangeGroup", "Between_Five_And_Ten_Seconds");
 				for(MonitorMeasure measure : betweenFiveAndTenSecondsCollection) {
 					measure.setValue(rangeGroup.getBetweenFiveTenSecond());
 				}
+				//Set value of >10s & <15s
 				Collection<MonitorMeasure> betweenTenAndFifteenSecondsCollection = env.getMonitorMeasures("RangeGroup", "Between_Ten_And_Fifteen_Seconds");
 				for(MonitorMeasure measure : betweenTenAndFifteenSecondsCollection) {
 					measure.setValue(rangeGroup.getBetweenTenFifteenSecond());
 				}
+				//Set value of >15s
 				Collection<MonitorMeasure> moreThanFifteenCollection = env.getMonitorMeasures("RangeGroup", "More_Than_15_Seconds");
 				for(MonitorMeasure measure : moreThanFifteenCollection) {
 					measure.setValue(rangeGroup.getMoreFifteenSecond());
 				}
-				
-				
-				
 			} catch(Throwable e) {
 				e.printStackTrace();
 				return status;
@@ -262,19 +224,12 @@ public class IPlanetMonitor implements Monitor {
 			status.setException(ce);
 			status.setStatusCode(Status.StatusCode.PartialSuccess);
 			status.setShortMessage(ce == null ? "" : ce.getClass().getSimpleName());
-			messageBuffer.append(ce == null ? "" : ce.getMessage());
 			log.log(Level.SEVERE, status.getMessage(), ce);
 		} catch (IOException ioe) {
 			status.setException(ioe);
 			status.setStatusCode(Status.StatusCode.ErrorTargetServiceExecutionFailed);
 			status.setShortMessage(ioe == null ? "" : ioe.getClass().getSimpleName());
-			messageBuffer.append(ioe == null ? "" : ioe.getMessage());
-			//if (log.isLoggable(Level.SEVERE))
-				log.severe("Requesting URL " + url.toString() /**httpRequest.getURI()**/ + " caused exception: " + ioe);
-		} 	
-		// calculate and set the measurements
-		status.setMessage(messageBuffer.toString());
-			logFine("Plugin Status: " + messageBuffer.toString());
+		}
 		
 		return status;
 	}
