@@ -2,40 +2,36 @@
 <?eclipse version="3.2"?>
 <!-- plugin.xml file written by dynaTrace Client 6.0.0 -->
 <plugin>
-  <extension point="com.dynatrace.diagnostics.pdk.pluginconfig" id="com.dynatrace.diagnostics.plugin.BaloiseMonitor" name="Baloise Monitor Plugin">
+  <extension point="com.dynatrace.diagnostics.pdk.pluginconfig" id="com.dynatrace.diagnostics.plugin.GenericOperationMonitor" name="Generic Operations Plugin">
     <information>
       <category value="" />
-      <description value="A monitor that allows for the retrieval of the netto results from the purepath time minus the client wait time generated in the fat client as well as separations of response time into different block" />
+      <description value="A plugin that allows for addition, substraction, multiplication, and division of metric" />
       <supportlevel value="unsupported" />
-      <displayname value="Baloise Monitor Plugin" />
+      <displayname value="Generic Operations Plugin" />
     </information>
     <configuration>
       <property key="dtServer" label="Dynatrace Server" type="string" description="The dynatrace server to test plugin in" default="localhost" multiline="false" />
       <property key="username" label="Username" type="string" description="The dynatrace username. This is necessary in order to access the server's RESTful interface&#xA;" default="" multiline="false" />
       <property key="password" label="Password" type="password" description="The password of the corresponding username. Necessary in order to access the Dynatrace RESTful interface" default="" />
       <property key="dashboardName" label="Dashboard Name" type="string" description="The name of the dashboard to retrieve the XML" default="" multiline="false" />
-      <property key="minuendMeasure" label="Minuend Measure" type="string" description="The measure from which another is to be subtracted" default="" multiline="false" />
-      <property key="subtrahendMeasure" label="Subtrahend Measure" type="string" description="The measure to be subtracted from another" default="" multiline="false" />
+      <property key="firstMeasure" label="First Measure" type="string" description="The first measure&#xA;" default="" multiline="false" />
+      <property key="secondMeasure" label="Second Measure" type="string" description="The measure to be subtracted from another" default="" multiline="false" />
+      <property key="operation" label="Operation" type="list" description="My property description ..." default="+">
+        <list>
+          <item value="+" />
+          <item value="-" />
+          <item value="*" />
+          <item value="/" />
+        </list>
+      </property>
     </configuration>
   </extension>
-  <extension point="com.dynatrace.diagnostics.pdk.monitor" id="com.dynatrace.diagnostics.plugin.BaloiseMonitor.monitor" name="BaloiseMonitor">
-    <plugin configid="com.dynatrace.diagnostics.plugin.BaloiseMonitor" class="com.dynatrace.diagnostics.plugin.IPlanetMonitor" />
+  <extension point="com.dynatrace.diagnostics.pdk.monitor" id="com.dynatrace.diagnostics.plugin.GenericOperationMonitor.monitor" name="GenericOperationMonitor">
+    <plugin configid="com.dynatrace.diagnostics.plugin.GenericOperationMonitor" class="com.dynatrace.diagnostics.plugin.IPlanetMonitor" />
   </extension>
-  <extension point="com.dynatrace.diagnostics.pdk.monitormetricgroup" id="com.dynatrace.diagnostics.plugin.BaloiseMonitor.metricgroup1" name="NettoGroup">
-    <metricgroup monitorid="com.dynatrace.diagnostics.plugin.BaloiseMonitor.monitor">
-      <metric defaultrate="purepath" name="netDiff" unit="ms" description="The net difference between the purepath time minus the user wait time in the Baloise wait time" />
-    </metricgroup>
-  </extension>
-  <extension point="com.dynatrace.diagnostics.pdk.monitormetricgroup" id="com.dynatrace.diagnostics.plugin.BaloiseMonitor.metricgroup2" name="RangeGroup">
-    <metricgroup monitorid="com.dynatrace.diagnostics.plugin.BaloiseMonitor.monitor">
-      <metric defaultrate="purepath" name="Less_Than_One_Second" unit="number" description="The number of transactions that fall inside a certain response time block. This response time is the purepath time - user wait time divided the purepath count" />
-      <metric defaultrate="purepath" name="Between_One_And_Two_Seconds" unit="number" description="My metric description ..." />
-      <metric defaultrate="purepath" name="Between_Two_And_Three_Seconds" unit="number" description="My metric description ..." />
-      <metric defaultrate="purepath" name="Between_Three_And_Four_Seconds" unit="number" description="My metric description ..." />
-      <metric defaultrate="purepath" name="Between_Four_And_Five_Seconds" unit="number" description="My metric description ..." />
-      <metric defaultrate="purepath" name="Between_Five_And_Ten_Seconds" unit="number" description="My metric description ..." />
-      <metric defaultrate="purepath" name="Between_Ten_And_Fifteen_Seconds" unit="number" description="My metric description ..." />
-      <metric defaultrate="purepath" name="More_Than_15_Seconds" unit="number" description="My metric description ..." />
+  <extension point="com.dynatrace.diagnostics.pdk.monitormetricgroup" id="com.dynatrace.diagnostics.plugin.GenericOperationMonitor.metricgroup1" name="ResultGroup">
+    <metricgroup monitorid="com.dynatrace.diagnostics.plugin.GenericOperationMonitor.monitor">
+      <metric defaultrate="purepath" name="result" unit="ms" description="The net difference between the purepath time minus the user wait time in the Baloise wait time" />
     </metricgroup>
   </extension>
 </plugin>

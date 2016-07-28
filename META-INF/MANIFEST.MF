@@ -1,8 +1,8 @@
 Manifest-Version: 1.0
-Bundle-SymbolicName: com.dynatrace.diagnostics.plugin.BaloiseMonitor;s
- ingleton:=true
-Bundle-Version: 1.1.1
-Bundle-Name: Baloise Monitor Plugin
+Bundle-SymbolicName: com.dynatrace.diagnostics.plugin.GenericOperation
+ Monitor;singleton:=true
+Bundle-Version: 1.1.0
+Bundle-Name: Generic Operations Plugin
 Bundle-ClassPath: .,lib/com.dynatrace.diagnostics.sdk.jar,lib/commons-
  httpclient-3.1.0.jar
 Require-Bundle: com.dynatrace.diagnostics.sdk

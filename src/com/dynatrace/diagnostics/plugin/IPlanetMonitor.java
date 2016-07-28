@@ -38,16 +38,16 @@ import com.dynatrace.diagnostics.pdk.Status;
 public class IPlanetMonitor implements Monitor {
 
 	private static final Logger log = Logger.getLogger(IPlanetMonitor.class.getName());
+	private static final String DIVISION = "/";
+	private static final String SUBSTRACTION = "-";
+	private static final String MULTIPLICATION = "*";
+	private static final String ADDITION = "+";
 	
 	//initialize config variables
-	private String minuendMeasure;
-	private String subtrahendMeasure;
-
-	/**
-	 * The RangeGroup that will calculate the different second range groups 
-	 * Set range section < 1 seconds && >1s & <2s && >2s & <3s & >3s & <4s  & >4s & <5s & >5s & <10s && >10s & <15s & > 15s		
-	 */
-	private RangeGroup rangeGroup;
+	private String firstMeasure;
+	private String secondMeasure;
+	private String operation;
+	
 	
 	/**
 	 * The restAPI is the variable allowing access to the data displayed in dashboards 
@@ -96,10 +96,9 @@ public class IPlanetMonitor implements Monitor {
 			return status;
 		}
 		restAPI = new ServerRestAPI(env.getConfigString("dtServer"), env.getConfigString("username"), env.getConfigPassword("password"));
-		rangeGroup = new RangeGroup();
-		
-		minuendMeasure = env.getConfigString("minuendMeasure");
-		subtrahendMeasure = env.getConfigString("subtrahendMeasure");
+		operation = env.getConfigString("operation");
+		firstMeasure = env.getConfigString("firstMeasure");
+		secondMeasure = env.getConfigString("secondMeasure");
 		
 		
 		
@@ -114,9 +113,7 @@ public class IPlanetMonitor implements Monitor {
 	public Status execute(MonitorEnvironment env) throws Exception {
 		Status status = new Status();				
 		logFine("Begin Plugin Execution");
-		
-		//Reset all ranges to 0
-		rangeGroup.resetGroup();
+	
 		
 		try {
 			
@@ -136,9 +133,9 @@ public class IPlanetMonitor implements Monitor {
 				for (int i = 0; i < tmp.getLength(); i++) {
 					String measureName = tmp.item(i).getAttributes().getNamedItem("measure").getNodeValue();
 					Element e = (Element)tmp.item(i);
-					if (measureName.contains(subtrahendMeasure)) {
+					if (measureName.contains(secondMeasure)) {
 						clientWaitTime = e.getElementsByTagName("measurement");
-					} else if (measureName.contains(minuendMeasure)){
+					} else if (measureName.contains(firstMeasure)){
 						purepathTime = e.getElementsByTagName("measurement");
 					}
 				}
@@ -152,68 +149,42 @@ public class IPlanetMonitor implements Monitor {
 					
 					double result = 0;
 					if (purePathTimeStamp.longValue() < clientWaitTimeStamp.longValue()) {
-						result = sumPurePathTime.doubleValue() / countPurePath.doubleValue();
+		               	result = sumPurePathTime.doubleValue();
 						purePathMinusWaitTimeDivCount.add(result);
 						j++;
 						
 					} else if(purePathTimeStamp.longValue() == clientWaitTimeStamp.longValue()){
-						result = (sumPurePathTime - sumClientWaitTime) / countPurePath.doubleValue();
+						switch (operation) {
+		                case ADDITION:
+		                	result = (sumPurePathTime + sumClientWaitTime) / countPurePath.doubleValue();
+		                    break;
+		                    
+		                case MULTIPLICATION:
+		                	result = (sumPurePathTime * sumClientWaitTime) / countPurePath.doubleValue();
+		                    break;
+		                    
+		                case DIVISION:
+		                	result = (sumPurePathTime / sumClientWaitTime) / countPurePath.doubleValue();
+		                    break;
+		                
+		                case SUBSTRACTION:
+		                	result = (sumPurePathTime - sumClientWaitTime) / countPurePath.doubleValue();
+		                    break;
+		                default:
+		                    break;
+		                }
 						purePathMinusWaitTimeDivCount.add(result);
 						i++;
 						j++;
 					}
-					
-					//Get range section < 1seconds && >1s & <2s && >2s & <3s & >3s & <4s  & >4s & <5s & >5s & <10s && >10s & <15s & > 15s
-					rangeGroup.calculateGroup(result);
 				}
 				
 				//Set value of netDiff = purepath time - client wait time / purepath count
-				Collection<MonitorMeasure> monitorMeasures = env.getMonitorMeasures("NettoGroup", "netDiff");
+				Collection<MonitorMeasure> monitorMeasures = env.getMonitorMeasures("ResultGroup", "result");
 				for (MonitorMeasure measure : monitorMeasures) {
 					measure.setValue(purePathMinusWaitTimeDivCount.get(purePathMinusWaitTimeDivCount.size() - 1));
 				}
 				
-				//Set range section < 1 seconds && >1s & <2s && >2s & <3s & >3s & <4s  & >4s & <5s & >5s & <10s && >10s & <15s & > 15s
-				//Set value of less than 1 second
-				Collection<MonitorMeasure> lessThanOneCollection = env.getMonitorMeasures("RangeGroup", "Less_Than_One_Second");
-				for(MonitorMeasure measure : lessThanOneCollection) {
-					measure.setValue(rangeGroup.getNumberLessOneSecond());
-				}
-				//Set value of >1s & <2s	
-				Collection<MonitorMeasure> betweenOneAndTwoCollection = env.getMonitorMeasures("RangeGroup", "Between_One_And_Two_Seconds");
-				for(MonitorMeasure measure : betweenOneAndTwoCollection) {
-					measure.setValue(rangeGroup.getBetweenOneTwoSecond());
-				}
-				//Set value of >2s & <3s
-				Collection<MonitorMeasure> betweenTwoAndThreeCollection = env.getMonitorMeasures("RangeGroup", "Between_Two_And_Three_Seconds");
-				for(MonitorMeasure measure : betweenTwoAndThreeCollection) {
-					measure.setValue(rangeGroup.getBetweenTwoThreeSecond());
-				}
-				//Set value of >3s & <4s
-				Collection<MonitorMeasure> betweenThreeAndFourCollection = env.getMonitorMeasures("RangeGroup", "Between_Three_And_Four_Seconds");
-				for(MonitorMeasure measure : betweenThreeAndFourCollection) {
-					measure.setValue(rangeGroup.getBetweenThreeFourSecond());
-				}
-				//Set value of >4s & <5s
-				Collection<MonitorMeasure> betweenFourAndFiveSecondsCollection = env.getMonitorMeasures("RangeGroup", "Between_Four_And_Five_Seconds");
-				for(MonitorMeasure measure : betweenFourAndFiveSecondsCollection) {
-					measure.setValue(rangeGroup.getBetweenFourFiveSecond());
-				}
-				//Set value of >5s & <10s
-				Collection<MonitorMeasure> betweenFiveAndTenSecondsCollection = env.getMonitorMeasures("RangeGroup", "Between_Five_And_Ten_Seconds");
-				for(MonitorMeasure measure : betweenFiveAndTenSecondsCollection) {
-					measure.setValue(rangeGroup.getBetweenFiveTenSecond());
-				}
-				//Set value of >10s & <15s
-				Collection<MonitorMeasure> betweenTenAndFifteenSecondsCollection = env.getMonitorMeasures("RangeGroup", "Between_Ten_And_Fifteen_Seconds");
-				for(MonitorMeasure measure : betweenTenAndFifteenSecondsCollection) {
-					measure.setValue(rangeGroup.getBetweenTenFifteenSecond());
-				}
-				//Set value of >15s
-				Collection<MonitorMeasure> moreThanFifteenCollection = env.getMonitorMeasures("RangeGroup", "More_Than_15_Seconds");
-				for(MonitorMeasure measure : moreThanFifteenCollection) {
-					measure.setValue(rangeGroup.getMoreFifteenSecond());
-				}
 			} catch(Throwable e) {
 				e.printStackTrace();
 				return status;
