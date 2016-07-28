@@ -1,13 +1,31 @@
-# Dynatrace-iPlanet-Monitor
-Plugin for Dynatrace AM to monitor iPlanet
+# Dynatrace-GenericOperations-Plugin
 
+Plugin that allows for generic operations on a pair of measures. The generic operations include addition, substraction, division and multiplication on the measure.
+The plugin utilizes the Dynatrace RESTful API to retrive the data from the measures. It is a requirement to have the measures inside a dashboard, so that the data can be exported and manipulated
 
-Takes a simple configuration to point to the enabled stats-xml page for iPlanet.
-More info: http://docs.oracle.com/cd/E19146-01/821-1834/geejp/index.html
+##Setup
 
-Easily extensible with Metric Groups, simply include node name and attribute for desired metric, 
-even a "denominator" attribute to calculate a ratio
+In your dynatrace client, navigate to the Settings button, then navigate to the Dynatrace Server section. When the Dynatrace Server Setting dialog opens, click the plugin section, and import the .jar into the Dynatrace Server.
 
-Due to the construction of this Plugin, it is a good candidate for a prototype generic XML monitor
+![Dynatrace Server Settings](http://i.imgur.com/8bXHnYf.png)
 
-Discussion and more info: https://community.dynatrace.com/community/display/DL/Oracle+iPlanet+Monitoring+Plugin
+##How to use
+
+1. Create a dashboard with the two metrics that you want to apply the generic operation to.
+*Remember to save the dashboard to the Dynatrace Server*
+
+![Dashboard](http://i.imgur.com/dL6eTEB.png)
+
+2. Navigate to the system profile where the measures reside, navigate to the Monitors section
+3. Select a GenericOperationMonitor.
+4. Fill out the corresponding fields:
+  - The Dynatrace Server where the measure are located
+  - Username: the username that is used to access the client *make sure this user has access to the web services*
+  - Password: The password for the user
+  - Dashboard Name
+  - The first measure
+  - The second measure
+  - The type of operation to perform (+, -, *, /)
+![Monitor Configuration](http://i.imgur.com/2eygjLd.png)
+
+I am open to ideas on improving the plugin. If you have any enhancement ideas please open an issue or contact me at jose.colella@dynatrace.com
