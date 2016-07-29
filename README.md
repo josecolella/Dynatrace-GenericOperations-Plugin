@@ -28,4 +28,6 @@ In your dynatrace client, navigate to the Settings button, then navigate to the 
   - The type of operation to perform (+, -, *, /)
 ![Monitor Configuration](http://i.imgur.com/2eygjLd.png)
 
+**The plugin will automatically detect the aggregation that is set on the dashlet for the measures. Make sure to configure the dashlet with the correct aggregation (Average, Sum, Count, Maximum and Minimum) and saving before create a GenericOperation Monitor.**
+
 I am open to ideas on improving the plugin. If you have any enhancement ideas please open an issue or contact me at jose.colella@dynatrace.com
