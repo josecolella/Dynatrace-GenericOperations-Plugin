@@ -31,7 +31,7 @@
   </extension>
   <extension point="com.dynatrace.diagnostics.pdk.monitormetricgroup" id="com.dynatrace.diagnostics.plugin.GenericOperationMonitor.metricgroup1" name="ResultGroup">
     <metricgroup monitorid="com.dynatrace.diagnostics.plugin.GenericOperationMonitor.monitor">
-      <metric defaultrate="purepath" name="result" unit="ms" description="The net difference between the purepath time minus the user wait time in the Baloise wait time" />
+      <metric defaultrate="purepath" name="result" unit="auto" description="The result from carrying out measure1 operation measure2" />
     </metricgroup>
   </extension>
 </plugin>
